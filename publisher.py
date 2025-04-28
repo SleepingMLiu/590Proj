@@ -53,7 +53,10 @@ def validate_date_range(date_range):
     """
     Validate date range format (yyyy-mm-dd to yyyy-mm-dd).
     """
-    pattern = r"^\d{4}-\d{2}-\d{2}\s+to\s+\d{4}-\d{2}-\d{4}$"
+
+    pattern = r"^\d{4}-\d{2}-\d{2}\s+to\s+\d{4}-\d{2}-\d{2}$"
+
+
     if not re.match(pattern, date_range):
         return False
     try:
