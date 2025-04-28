@@ -146,33 +146,43 @@ def insert_data_into_postgres(data, conf):
             conn.close()
 
 def check_postgres(**kwargs):
-    """Check if requested data already exists."""
+    """Check if data already exists for the request."""
     conf = kwargs['dag_run'].conf
+    conn = None
+    cursor = None
     try:
         conn = psycopg2.connect(**DB_CONFIG)
         cursor = conn.cursor()
+
         start_date, end_date = conf['date_range'].split(" to ")
 
         cursor.execute(
             """
-            SELECT 1 FROM readings 
-            WHERE station_id=%s 
-            AND observation_time BETWEEN %s AND %s 
+            SELECT 1 FROM readings
+            WHERE station_id = %s
+            AND date BETWEEN %s AND %s
             LIMIT 1
             """,
             (conf['location'], start_date, end_date)
         )
         data_exists = cursor.fetchone()
-        return "write_processed_to_gcs" if data_exists else "fetch_from_api"
+
+        if data_exists:
+            print("[INFO] Data already exists.")
+            return "write_processed_to_gcs"
+        else:
+            print("[INFO] Data not found, fetching new data.")
+            return "fetch_from_api"
 
     except Exception as e:
-        print(f"[ERROR] Postgres check failed: {e}")
+        print(f"[ERROR] Database check failed: {e}")
         raise
     finally:
         if cursor:
             cursor.close()
         if conn:
             conn.close()
+
 
 def fetch_from_api(**kwargs):
     """Fetch weather data if missing."""
