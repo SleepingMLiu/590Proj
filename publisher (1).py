@@ -6,6 +6,8 @@ import re
 from datetime import datetime
 import sys
 import time
+from mongo_logger import log_user_action
+
 
 
 # Project details
@@ -123,6 +125,7 @@ def get_user_input():
     }
 
     if request_type == "data":
+        
         allowed_sources = ["noaa", "mtbs", "nifc", "landsat"]
         while True:
             source = input("Enter source (noaa, mtbs, nifc, landsat): ").lower()
@@ -149,6 +152,15 @@ def get_user_input():
                 break
             else:
                 print("Invalid date format. Example: 2022-01-01 to 2022-01-10")
+                
+        start_date, end_date = map(str.strip, date_range.split("to"))
+
+        message.update({
+            "source": source,
+            "location": location,
+            "start_date": start_date.strip(),
+            "end_date": end_date.strip()
+        })
 
     elif request_type == "metadata":
         allowed_metadata_sources = ["noaa", "mtbs", "nifc", "landsat"]
@@ -165,10 +177,29 @@ def get_user_input():
 
     return message
 
-def publish_user_request(message):
+def publish_user_request(message, user_id, source=None, location=None, start_date=None, end_date=None):
     """Publish user request to the 'user-requests-topic'."""
     future = publisher.publish(user_request_topic_path, json.dumps(message).encode("utf-8"))
     print(f"Published request to 'user-requests-topic'. Message ID: {future.result()}")
+    if message.get("request_type") == "data":
+        log_user_action(
+            user_id=user_id,
+            action="submit_query",
+            details={
+                "source": source,
+                "location": location,
+                "date_range": [start_date, end_date]
+            }
+        )
+    else:
+        log_user_action(
+            user_id=user_id,
+            action="submit_metadata_request",
+            details={
+                "source": message.get("source")
+            }
+        )
+    
 
 def listen_for_completion(user_id):
     """Listen for confirmation that data upload is complete."""
@@ -207,7 +238,23 @@ def main():
             listen_for_completion(user_id)
 
             # Publish the message
-            publish_user_request(message)
+            # If it's a data request
+            if message["request_type"] == "data":
+                publish_user_request(
+                    message,
+                    user_id=message["user_id"],
+                    source=message["source"],
+                    location=message["location"],
+                    start_date=message["start_date"],
+                    end_date=message["end_date"]
+                )
+
+            # If it's a metadata request
+            else:
+                publish_user_request(
+                    message,
+                    user_id=message["user_id"]
+                )
 
             # Wait until the event is set by subscriber
             print("Waiting for data upload to complete...")
