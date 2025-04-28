@@ -79,7 +79,7 @@ def save_raw_to_gcs(data, conf):
     """Save raw fetched data into GCS."""
     gcs_hook = GCSHook(gcp_conn_id="google_cloud_default")
     sanitized_date_range = conf['date_range'].replace(" ", "_").replace("/", "-")
-    file_path = f"noaa/{conf['location']}/{sanitized_date_range}.json"
+    file_path = f"ncei/{conf['location']}/{sanitized_date_range}.json"
     gcs_hook.upload(
         bucket_name=RAW_BUCKET_NAME,
         object_name=file_path,
@@ -117,10 +117,23 @@ def insert_data_into_postgres(data, conf):
             for record in data:
                 cursor.execute(
                     """
-                    INSERT INTO ncei_daily_data (station_id, date, tmax, tmin, tavg, prcp)
-                    VALUES (%s, %s, %s, %s, %s, %s)
+                    INSERT INTO readings (
+                        station_id, date, tmax, tmin, tavg, prcp, snow, snwd, awnd, wdf2, wsf2, fog, thunder, smoke_haze, station_name
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     ON CONFLICT (station_id, date) DO UPDATE SET
-                    tmax=EXCLUDED.tmax, tmin=EXCLUDED.tmin, tavg=EXCLUDED.tavg, prcp=EXCLUDED.prcp
+                        tmax=EXCLUDED.tmax,
+                        tmin=EXCLUDED.tmin,
+                        tavg=EXCLUDED.tavg,
+                        prcp=EXCLUDED.prcp,
+                        snow=EXCLUDED.snow,
+                        snwd=EXCLUDED.snwd,
+                        awnd=EXCLUDED.awnd,
+                        wdf2=EXCLUDED.wdf2,
+                        wsf2=EXCLUDED.wsf2,
+                        fog=EXCLUDED.fog,
+                        thunder=EXCLUDED.thunder,
+                        smoke_haze=EXCLUDED.smoke_haze,
+                        station_name=EXCLUDED.station_name
                     """,
                     (
                         record['STATION'],
@@ -128,7 +141,16 @@ def insert_data_into_postgres(data, conf):
                         record.get('TMAX'),
                         record.get('TMIN'),
                         record.get('TAVG'),
-                        record.get('PRCP')
+                        record.get('PRCP'),
+                        record.get('SNOW'),
+                        record.get('SNWD'),
+                        record.get('AWND'),
+                        record.get('WDF2'),
+                        record.get('WSF2'),
+                        bool(int(record.get('WT01', 0))),
+                        bool(int(record.get('WT03', 0))),
+                        bool(int(record.get('WT08', 0))),
+                        record.get('NAME')
                     )
                 )
 
@@ -185,14 +207,15 @@ def check_postgres(**kwargs):
 
 
 def fetch_from_api(**kwargs):
-    """Fetch weather data if missing."""
+    """Fetch daily summary data from NCEI."""
     conf = kwargs['dag_run'].conf
     station_id = conf['location']
     start_date, end_date = conf['date_range'].split(" to ")
 
-    data = fetch_from_noaa(station_id, start_date, end_date)
-    save_raw_to_gcs(data, conf)
-    insert_data_into_postgres(data, conf)
+    ncei_data = fetch_from_ncei(station_id, start_date, end_date)
+    save_raw_to_gcs(ncei_data, conf)
+    insert_data_into_postgres(ncei_data, conf)
+
 
 def write_processed_to_gcs(**kwargs):
     """Write processed weather data to GCS."""
