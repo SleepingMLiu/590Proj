@@ -63,6 +63,9 @@ def validate_date_range(date_range):
         return True
     except ValueError:
         return False
+    
+
+
 
 def get_user_input():
     """
