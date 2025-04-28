@@ -95,13 +95,12 @@ def get_user_input():
         if not validate_date_range(date_range):
             raise ValueError("Invalid date format. Expected yyyy-mm-dd to yyyy-mm-dd.")
 
-        start_date, end_date = map(str.strip, date_range.split("to"))
 
         message.update({
             "source": source,
             "original_location": original_location,
             "location": location,
-            "date_range": f"{start_date.strip()} to {end_date.strip()}"
+            "date_range": date_range.strip()
 })
 
     elif request_type == "metadata":
