@@ -8,7 +8,7 @@ from airflow.providers.google.cloud.hooks.gcs import GCSHook
 import psycopg2
 
 # -----------------------------
-# Constants and Helper Functions
+# Constants and Helper Functions 
 # -----------------------------
 
 PROJECT_ID = "prime-agency-456202-b7"
