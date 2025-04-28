@@ -179,7 +179,7 @@ def main():
     """
     Main function to drive the publisher program.
     """
-    print("Weather Data Request Publisher")
+    print("Weather Data Request Publisher ")
     print("Press Ctrl+C to exit\n")
     global download_link
 
