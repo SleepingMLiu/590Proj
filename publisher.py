@@ -136,6 +136,7 @@ def get_user_input():
 
         while True:
             location = input("Enter location (e.g., 'New York', 'JFK', 'LA'): ")
+            original_location = location
             try:
                 # Resolve to station ID if NOAA source
                 if source == "noaa":
@@ -157,6 +158,7 @@ def get_user_input():
 
         message.update({
             "source": source,
+            "original_location": original_location,
             "location": location,
             "start_date": start_date.strip(),
             "end_date": end_date.strip()
@@ -187,7 +189,8 @@ def publish_user_request(message, user_id, source=None, location=None, start_dat
             action="submit_query",
             details={
                 "source": source,
-                "location": location,
+                "original_location": message.get("original_location"),
+                "station_id": location,
                 "date_range": [start_date, end_date]
             }
         )
