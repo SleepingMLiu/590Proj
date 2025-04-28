@@ -189,7 +189,7 @@ def publish_user_request(message, user_id, source=None, location=None, start_dat
             action="submit_query",
             details={
                 "source": source,
-                "original_location": message.get("original_location"),
+                "location": message.get("original_location"),
                 "station_id": location,
                 "date_range": [start_date, end_date]
             }
