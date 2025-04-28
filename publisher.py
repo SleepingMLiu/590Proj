@@ -101,9 +101,8 @@ def get_user_input():
             "source": source,
             "original_location": original_location,
             "location": location,
-            "start_date": start_date,
-            "end_date": end_date
-        })
+            "date_range": f"{start_date.strip()} to {end_date.strip()}"
+})
 
     elif request_type == "metadata":
         metadata_source = input("Enter metadata source (noaa, mtbs, nifc, landsat): ").strip().lower()
