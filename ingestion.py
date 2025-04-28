@@ -198,7 +198,7 @@ def write_processed_to_gcs(**kwargs):
             SELECT station_id, observation_time, temperature_value
             FROM readings
             WHERE station_id=%s
-            AND observation_time BETWEEN %s AND %s
+            AND timestamp BETWEEN %s AND %s
             """,
             (conf['location'], start_date, end_date)
         )
