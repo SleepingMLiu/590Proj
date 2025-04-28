@@ -205,7 +205,7 @@ def write_processed_to_gcs(**kwargs):
 
         cursor.execute(
             """
-            SELECT station_id, observation_time, temperature_value
+            SELECT station_id, date, temperature_value
             FROM readings
             WHERE station_id=%s
             AND timestamp BETWEEN %s AND %s
