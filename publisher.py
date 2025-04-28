@@ -12,7 +12,7 @@ from mongo_logger import log_user_action
 
 # GCP project and topic details
 PROJECT_ID = "prime-agency-456202-b7"
-USER_REQUEST_TOPIC = "user-requests-topic"
+USER_REQUEST_TOPIC = "topic1"
 DATA_COMPLETE_SUBSCRIPTION = "data-upload-complete-topic-sub"
 
 # Mapping common location names to NOAA/NCEI station IDs

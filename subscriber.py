@@ -46,7 +46,7 @@ def data_already_exists(location, date_range, source):
 
 # Project and subscription details
 PROJECT_ID = "prime-agency-456202-b7"
-USER_REQUEST_SUBSCRIPTION_ID = "user-requests-sub"
+USER_REQUEST_SUBSCRIPTION_ID = "topic1-sub"
 CONFIRMATION_SUBSCRIPTION_ID = "data-upload-complete-sub"
 DAG_ID = "data_request_pipeline"
 AIRFLOW_TRIGGER_URL = "http://34.30.255.233:8080/api/v1/dags/{dag_id}/dagRuns"
