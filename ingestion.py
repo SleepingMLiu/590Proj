@@ -84,10 +84,10 @@ def check_postgres(**kwargs):
 
         cursor.execute(
             """
-            SELECT COUNT(DISTINCT CAST(timestamp AS DATE))
+            SELECT COUNT(DISTINCT date)
             FROM readings
             WHERE station_id = %s
-            AND timestamp BETWEEN %s AND %s
+            AND date BETWEEN %s AND %s
             """,
             (conf['location'], start_date, end_date)
         )
