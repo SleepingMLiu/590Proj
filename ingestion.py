@@ -8,7 +8,7 @@ from airflow.providers.google.cloud.hooks.gcs import GCSHook
 import psycopg2
 
 # -----------------------------
-# Constants and Helper Functions 
+# Constants and Helper Functions
 # -----------------------------
 
 PROJECT_ID = "prime-agency-456202-b7"
@@ -34,17 +34,37 @@ NCEI_ALL_DATA_TYPES = [
 ]
 
 def publish_to_pubsub(message, topic_name):
-    """Publish a message to a Pub/Sub topic."""
     publisher = pubsub_v1.PublisherClient()
     topic_path = publisher.topic_path(PROJECT_ID, topic_name)
     publisher.publish(topic_path, json.dumps(message).encode('utf-8'))
 
+def fetch_from_ncei(station_id, start_date, end_date):
+    params = {
+        "dataset": "daily-summaries",
+        "stations": station_id,
+        "startDate": start_date,
+        "endDate": end_date,
+        "dataTypes": ",".join(NCEI_ALL_DATA_TYPES),
+        "units": "metric",
+        "format": "json",
+        "includeStationName": "true"
+    }
+    try:
+        response = requests.get(
+            "https://www.ncei.noaa.gov/access/services/data/v1",
+            params=params,
+            headers={"User-Agent": "WeatherDataIngestion/1.0"},
+            timeout=30
+        )
+        response.raise_for_status()
+        return response.json()
+    except Exception as e:
+        raise ValueError(f"Error fetching NCEI data: {e}")
+
 def insert_metadata_log(station_id, user_id, action):
-    """Insert metadata log into data_metadata table."""
     try:
         conn = psycopg2.connect(**DB_CONFIG)
         cursor = conn.cursor()
-
         now = datetime.now(timezone.utc)
         cursor.execute(
             """
@@ -70,17 +90,14 @@ def insert_metadata_log(station_id, user_id, action):
 # -----------------------------
 
 def check_postgres(**kwargs):
-    """Check if FULL requested data range exists."""
-    from datetime import datetime  # Needed because you use datetime.strptime
     conf = kwargs['dag_run'].conf
     conn = None
     cursor = None
     try:
         conn = psycopg2.connect(**DB_CONFIG)
         cursor = conn.cursor()
-
         start_date, end_date = conf['date_range'].split(" to ")
-        start_date = start_date.strip()  # no time added
+        start_date = start_date.strip()
         end_date = end_date.strip()
 
         cursor.execute(
@@ -94,7 +111,6 @@ def check_postgres(**kwargs):
         )
 
         existing_days = cursor.fetchone()[0]
-
         start_dt = datetime.strptime(start_date, "%Y-%m-%d")
         end_dt = datetime.strptime(end_date, "%Y-%m-%d")
         requested_days = (end_dt - start_dt).days + 1
@@ -115,20 +131,17 @@ def check_postgres(**kwargs):
         if conn:
             conn.close()
 
-
 def fetch_from_api(**kwargs):
-    """Fetch new data, save raw, insert into Postgres."""
     conf = kwargs['dag_run'].conf
     station_id = conf['location']
     start_date, end_date = conf['date_range'].split(" to ")
 
-    data = fetch_from_ncei(station_id, start_date, end_date)
+    data = fetch_from_ncei(station_id, start_date.strip(), end_date.strip())
     save_raw_to_gcs(data, conf)
     insert_data_into_postgres(data, conf)
-    insert_metadata_log(station_id, conf['user_id'], "insert")  # Log insert action
+    insert_metadata_log(station_id, conf['user_id'], "insert")
 
 def save_raw_to_gcs(data, conf):
-    """Save raw data to GCS."""
     gcs_hook = GCSHook(gcp_conn_id="google_cloud_default")
     sanitized_date_range = conf['date_range'].replace(" ", "_").replace("/", "-")
     file_path = f"ncei/{conf['location']}/{sanitized_date_range}.json"
@@ -141,7 +154,6 @@ def save_raw_to_gcs(data, conf):
     print(f"[INFO] Raw data saved: {file_path}")
 
 def insert_data_into_postgres(data, conf):
-    """Insert into Postgres."""
     try:
         conn = psycopg2.connect(**DB_CONFIG)
         cursor = conn.cursor()
@@ -198,7 +210,6 @@ def insert_data_into_postgres(data, conf):
             conn.close()
 
 def write_processed_to_gcs(**kwargs):
-    """Write processed data to GCS."""
     conf = kwargs['dag_run'].conf
     station_id = conf['location']
     user_id = conf['user_id']
@@ -209,6 +220,8 @@ def write_processed_to_gcs(**kwargs):
         cursor = conn.cursor()
 
         start_date, end_date = conf['date_range'].split(" to ")
+        start_date = start_date.strip()
+        end_date = end_date.strip()
 
         cursor.execute(
             """
@@ -240,7 +253,7 @@ def write_processed_to_gcs(**kwargs):
             mime_type='application/json'
         )
 
-        insert_metadata_log(station_id, user_id, "download")  # Log download action
+        insert_metadata_log(station_id, user_id, "download")
 
         publish_to_pubsub({
             "user_id": user_id,
@@ -263,7 +276,7 @@ def write_processed_to_gcs(**kwargs):
             conn.close()
 
 # -----------------------------
-# Define the Airflow DAG
+# DAG Definition
 # -----------------------------
 
 default_args = {
@@ -299,6 +312,5 @@ with DAG(
         python_callable=write_processed_to_gcs
     )
 
-    # DAG Dependencies
     check_task >> [fetch_task, write_task]
     fetch_task >> write_task
