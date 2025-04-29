@@ -146,8 +146,17 @@ def listen_for_completion(user_id):
         payload = json.loads(message.data.decode("utf-8"))
 
         if payload.get("user_id") == user_id:
-            print(f"Data upload complete for user {user_id}!")
-            download_link = payload.get("gcs_path")  # Must make sure your DAG sends 'gcs_path'
+            status = payload.get("status", "unknown")
+            print(f"\nData upload status for user {user_id}: {status}")
+
+            if status == "complete":
+                print("New data ingestion completed!")
+            elif status == "already_exists":
+                print("Data already existed. No new ingestion performed.")
+            else:
+                print("Unknown status received.")
+
+            download_link = payload.get("gcs_path")
             confirmation_event.set()
             message.ack()
         else:
