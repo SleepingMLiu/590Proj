@@ -89,9 +89,10 @@ def check_postgres(**kwargs):
             FROM readings
             WHERE station_id = %s
             AND date BETWEEN %s AND %s
-            """,date_range_exist
+            """,
             (conf['location'], start_date, end_date)
         )
+
         existing_days = cursor.fetchone()[0]
 
         start_dt = datetime.strptime(start_date, "%Y-%m-%d")
@@ -208,15 +209,13 @@ def write_processed_to_gcs(**kwargs):
         cursor = conn.cursor()
 
         start_date, end_date = conf['date_range'].split(" to ")
-        start_date += " 00:00:00"
-        end_date += " 23:59:59"
 
         cursor.execute(
             """
-            SELECT station_id, CAST(timestamp AS DATE) as date
+            SELECT station_id, date
             FROM readings
             WHERE station_id = %s
-            AND timestamp BETWEEN %s AND %s
+            AND date BETWEEN %s AND %s
             """,
             (station_id, start_date, end_date)
         )
