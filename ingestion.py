@@ -224,10 +224,9 @@ def write_processed_to_gcs(**kwargs):
         start_date, end_date = conf['date_range'].split(" to ")
         start_date = start_date.strip()
         end_date = end_date.strip()
-
         cursor.execute(
             """
-            SELECT station_id, date
+            SELECT station_id, date, tmax, tmin, tavg, prcp, snow, snwd, awnd, wdf2, wsf2, fog, thunder, smoke_haze, station_name
             FROM readings
             WHERE station_id = %s
             AND date BETWEEN %s AND %s
