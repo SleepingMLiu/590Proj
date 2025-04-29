@@ -210,6 +210,8 @@ def insert_data_into_postgres(data, conf):
             conn.close()
 
 def write_processed_to_gcs(**kwargs):
+    from datetime import date  # 🔥 Important: import date class
+
     conf = kwargs['dag_run'].conf
     station_id = conf['location']
     user_id = conf['user_id']
@@ -239,6 +241,11 @@ def write_processed_to_gcs(**kwargs):
 
         columns = [desc[0] for desc in cursor.description]
         data = [dict(zip(columns, row)) for row in rows]
+
+        # 🔥 Fix: Convert 'date' object to string
+        for record in data:
+            if isinstance(record['date'], date):
+                record['date'] = record['date'].isoformat()
 
         gcs_hook = GCSHook(gcp_conn_id="google_cloud_default")
         sanitized_user = user_id.replace(" ", "_")
