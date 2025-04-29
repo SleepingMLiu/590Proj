@@ -255,7 +255,7 @@ def write_processed_to_gcs(**kwargs):
         gcs_hook.upload(
             bucket_name=PROCESSED_BUCKET_NAME,
             object_name=output_file,
-            data=json.dumps(data, indent=2),
+            data=json.dumps(data, indent=2, default=float),
             mime_type='application/json'
         )
 
