@@ -15,7 +15,7 @@ PROJECT_ID = "prime-agency-456202-b7"
 USER_REQUEST_SUBSCRIPTION_ID = "topic1-sub"
 CONFIRMATION_SUBSCRIPTION_ID = "data-upload-complete-sub"
 DAG_ID = "data_request_pipeline"
-AIRFLOW_TRIGGER_URL = "http://34.30.255.233:8080/api/v1/dags/{dag_id}/dagRuns"
+AIRFLOW_TRIGGER_URL = "http://34.9.210.246:8080/api/v1/dags/{dag_id}/dagRuns"
 PROCESSED_BUCKET_NAME = "ece-590-group2-processed"  # Used for displaying download link
 
 auth = HTTPBasicAuth("airflow", "airflow")
