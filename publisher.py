@@ -8,7 +8,7 @@ import sys
 import time
 from datetime import datetime
 from google.cloud import pubsub_v1
-from mongo_logger import log_user_action
+from mongo_logger import log_user_action  # Assuming you have a MongoDB logger already set up
 
 # GCP project and topic details
 PROJECT_ID = "prime-agency-456202-b7"
@@ -53,10 +53,7 @@ def validate_date_range(date_range):
     """
     Validate date range format (yyyy-mm-dd to yyyy-mm-dd).
     """
-
     pattern = r"^\d{4}-\d{2}-\d{2}\s+to\s+\d{4}-\d{2}-\d{2}$"
-
-
     if not re.match(pattern, date_range):
         return False
     try:
@@ -66,9 +63,6 @@ def validate_date_range(date_range):
         return True
     except ValueError:
         return False
-    
-
-
 
 def get_user_input():
     """
@@ -95,13 +89,12 @@ def get_user_input():
         if not validate_date_range(date_range):
             raise ValueError("Invalid date format. Expected yyyy-mm-dd to yyyy-mm-dd.")
 
-
         message.update({
             "source": source,
             "original_location": original_location,
             "location": location,
             "date_range": date_range.strip()
-})
+        })
 
     elif request_type == "metadata":
         metadata_source = input("Enter metadata source (noaa, mtbs, nifc, landsat): ").strip().lower()
@@ -118,7 +111,7 @@ def publish_user_request(message):
     """
     try:
         future = publisher.publish(user_request_topic_path, json.dumps(message).encode("utf-8"))
-        print(f"Published request to 'user-requests-topic'. Message ID: {future.result()}")
+        print(f"Published request to 'topic1'. Message ID: {future.result()}")
 
         # Log action to MongoDB
         if message["request_type"] == "data":
@@ -129,7 +122,7 @@ def publish_user_request(message):
                     "source": message["source"],
                     "original_location": message["original_location"],
                     "resolved_station_id": message["location"],
-                    "date_range": [message["start_date"], message["end_date"]]
+                    "date_range": message["date_range"]
                 }
             )
         else:
@@ -138,8 +131,11 @@ def publish_user_request(message):
                 action="submit_metadata_request",
                 details={"source": message["source"]}
             )
+        return True
+
     except Exception as e:
         print(f"Failed to publish message: {str(e)}")
+        return False
 
 def listen_for_completion(user_id):
     """
@@ -151,7 +147,7 @@ def listen_for_completion(user_id):
 
         if payload.get("user_id") == user_id:
             print(f"Data upload complete for user {user_id}!")
-            download_link = payload.get("gcs_path")
+            download_link = payload.get("gcs_path")  # Must make sure your DAG sends 'gcs_path'
             confirmation_event.set()
             message.ack()
         else:
@@ -186,18 +182,21 @@ def main():
     try:
         while True:
             message = get_user_input()
-            listen_for_completion(message["user_id"])
-            publish_user_request(message)
-            print("Waiting for data upload to complete...")
-            pretty_wait(confirmation_event, timeout=600)
+            success = publish_user_request(message)
+            if success:
+                listen_for_completion(message["user_id"])
+                print("Waiting for data upload to complete...")
+                pretty_wait(confirmation_event, timeout=600)
 
-            if download_link:
-                print(f"Your data is ready! Download it from: {download_link}")
+                if download_link:
+                    print(f"Your data is ready! Download it from: {download_link}")
+                else:
+                    print("Timed out waiting for data upload confirmation.")
+
+                confirmation_event.clear()
+                download_link = None
             else:
-                print("Timed out waiting for data upload confirmation.")
-
-            confirmation_event.clear()
-            download_link = None
+                print("Skipping waiting for confirmation due to publish failure.")
 
     except KeyboardInterrupt:
         print("\nPublisher stopped.")
