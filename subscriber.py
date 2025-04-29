@@ -37,11 +37,12 @@ confirmation_subscription_path = subscriber.subscription_path(PROJECT_ID, CONFIR
 # -----------------------------
 # Helper Functions
 # -----------------------------
-
 def data_range_exists_in_readings(station_id, date_range):
     """
     Check if ALL requested dates exist in the 'readings' table.
     """
+    from datetime import datetime
+
     conn = None
     cursor = None
     try:
@@ -49,22 +50,22 @@ def data_range_exists_in_readings(station_id, date_range):
         cursor = conn.cursor()
 
         start_date, end_date = date_range.split("to")
-        start_date = start_date.strip() + " 00:00:00"
-        end_date = end_date.strip() + " 23:59:59"
+        start_date = start_date.strip()
+        end_date = end_date.strip()
 
         cursor.execute(
             """
-            SELECT COUNT(DISTINCT CAST(timestamp AS DATE))
+            SELECT COUNT(DISTINCT date)
             FROM readings
             WHERE station_id = %s
-            AND timestamp BETWEEN %s AND %s
+            AND date BETWEEN %s AND %s
             """,
             (station_id, start_date, end_date)
         )
         existing_days = cursor.fetchone()[0]
 
-        start_dt = datetime.strptime(start_date[:10], "%Y-%m-%d")
-        end_dt = datetime.strptime(end_date[:10], "%Y-%m-%d")
+        start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+        end_dt = datetime.strptime(end_date, "%Y-%m-%d")
         requested_days = (end_dt - start_dt).days + 1
 
         return existing_days == requested_days
@@ -77,6 +78,7 @@ def data_range_exists_in_readings(station_id, date_range):
             cursor.close()
         if conn:
             conn.close()
+
 
 def publish_already_exists_confirmation(user_id, station_id, date_range):
     """
@@ -207,3 +209,4 @@ def main():
 if __name__ == "__main__":
     from datetime import datetime  # Only needed here
     main()
+

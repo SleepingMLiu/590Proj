@@ -71,6 +71,7 @@ def insert_metadata_log(station_id, user_id, action):
 
 def check_postgres(**kwargs):
     """Check if FULL requested data range exists."""
+    from datetime import datetime  # Needed because you use datetime.strptime
     conf = kwargs['dag_run'].conf
     conn = None
     cursor = None
@@ -79,8 +80,8 @@ def check_postgres(**kwargs):
         cursor = conn.cursor()
 
         start_date, end_date = conf['date_range'].split(" to ")
-        start_date += " 00:00:00"
-        end_date += " 23:59:59"
+        start_date = start_date.strip()  # no time added
+        end_date = end_date.strip()
 
         cursor.execute(
             """
@@ -88,13 +89,13 @@ def check_postgres(**kwargs):
             FROM readings
             WHERE station_id = %s
             AND date BETWEEN %s AND %s
-            """,
+            """,date_range_exist
             (conf['location'], start_date, end_date)
         )
         existing_days = cursor.fetchone()[0]
 
-        start_dt = datetime.strptime(start_date[:10], "%Y-%m-%d")
-        end_dt = datetime.strptime(end_date[:10], "%Y-%m-%d")
+        start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+        end_dt = datetime.strptime(end_date, "%Y-%m-%d")
         requested_days = (end_dt - start_dt).days + 1
 
         if existing_days == requested_days:
@@ -112,6 +113,7 @@ def check_postgres(**kwargs):
             cursor.close()
         if conn:
             conn.close()
+
 
 def fetch_from_api(**kwargs):
     """Fetch new data, save raw, insert into Postgres."""
