@@ -76,6 +76,10 @@ def get_user_input():
 
     user_id = input("Enter your user ID: ").strip()
     request_type = input("Request type (type data for now): ").strip().lower()
+    while request_type not in ['data']:
+        print("invalid request type. Please try again. ")
+        request_type = input("Request type (type data for now): ").strip().lower()
+
 
     message = {"user_id": user_id, "request_type": request_type}
 
@@ -94,8 +98,9 @@ def get_user_input():
 
         date_range = input("Enter date range (yyyy-mm-dd to yyyy-mm-dd): ").strip()
         while not validate_date_range(date_range):
+            print("The date range is invalid. Please check and try again.")
             date_range = input("Enter date range (yyyy-mm-dd to yyyy-mm-dd): ").strip()
-            
+
         if source == "noaa":
             location = resolve_station_id(location)
 
