@@ -49,20 +49,22 @@ def resolve_station_id(location):
         return STATION_MAPPING[clean_loc]
     raise ValueError(f"Location '{location}' not recognized. Try a nearby major city or airport code.")
 
-def validate_date_range(date_range):
-    """
-    Validate date range format (yyyy-mm-dd to yyyy-mm-dd).
-    """
-    pattern = r"^\d{4}-\d{2}-\d{2}\s+to\s+\d{4}-\d{2}-\d{2}$"
+def validate_date_range(date_range: str) -> bool:
+    # Flexible pattern with optional commas/spaces
+    pattern = r"^\s*\d{4}-\d{2}-\d{2}\s*,?\s*to\s*,?\s*\d{4}-\d{2}-\d{2}\s*$"
+
     if not re.match(pattern, date_range):
         return False
+
     try:
-        start, end = date_range.split("to")
-        datetime.strptime(start.strip(), "%Y-%m-%d")
-        datetime.strptime(end.strip(), "%Y-%m-%d")
-        return True
+        start_str, end_str = [d.strip().strip(',') for d in date_range.split("to")]
+        start_date = datetime.strptime(start_str, "%Y-%m-%d")
+        end_date = datetime.strptime(end_str, "%Y-%m-%d")
+        return start_date <= end_date  # You can use < if you want strictly increasing
     except ValueError:
-        return False
+        return False  # Invalid calendar date
+
+
 
 def get_user_input():
     """
@@ -73,16 +75,27 @@ def get_user_input():
     print("=" * 50)
 
     user_id = input("Enter your user ID: ").strip()
-    request_type = input("Request type ('data' or 'metadata'): ").strip().lower()
+    request_type = input("Request type (type data for now): ").strip().lower()
 
     message = {"user_id": user_id, "request_type": request_type}
 
     if request_type == "data":
         source = input("Enter source (noaa, mtbs, nifc, landsat): ").strip().lower()
-        location = input("Enter location (e.g., 'New York', 'JFK', 'LA'): ").strip()
-        original_location = location
-        date_range = input("Enter date range (yyyy-mm-dd to yyyy-mm-dd): ").strip()
+        while source not in ['noaa','mtbs','nifc','landsat']:
+            print("Invalid source. Please try again")
+            source = input("Enter source (noaa, mtbs, nifc, landsat): ").strip().lower()
 
+        location = input("Enter location (e.g., 'New York', 'JFK', 'LA'): ").strip()
+        while location not in STATION_MAPPING.keys():
+            print("The location is either not supported or invalid.Please try again.")
+            location = input("Enter location (e.g., 'New York', 'JFK', 'LA'): ").strip()
+
+        original_location = location
+
+        date_range = input("Enter date range (yyyy-mm-dd to yyyy-mm-dd): ").strip()
+        while not validate_date_range(date_range):
+            date_range = input("Enter date range (yyyy-mm-dd to yyyy-mm-dd): ").strip()
+            
         if source == "noaa":
             location = resolve_station_id(location)
 
