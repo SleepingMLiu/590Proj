@@ -31,11 +31,12 @@ def cleanup_old_files():
 
         for blob_name in blobs:
             try:
-                metadata = gcs_hook.get_metadata(bucket_name=PROCESSED_BUCKET_NAME, object_name=blob_name)
-                updated_str = metadata.get("updated")
-
-                # Parse timestamp
-                updated_dt = datetime.strptime(updated_str, "%Y-%m-%dT%H:%M:%S.%fZ")
+                client = gcs_hook.get_conn()
+                blob = client.bucket(PROCESSED_BUCKET_NAME).get_blob(blob_name)
+                if not blob or not blob.updated:
+                    print(f"Skipping: No updated timestamp found for {blob_name}")
+                    continue
+                updated_dt = blob.updated
 
                 if updated_dt < cutoff_time:
                     print(f"Deleting old file: {blob_name}")
