@@ -61,17 +61,20 @@ def fetch_from_ncei(station_id, start_date, end_date):
     except Exception as e:
         raise ValueError(f"Error fetching NCEI data: {e}")
 
-def insert_metadata_log(station_id, user_id, action):
+def insert_metadata_log(station_id, user_id, action,date_range):
     try:
         conn = psycopg2.connect(**DB_CONFIG)
         cursor = conn.cursor()
         now = datetime.now(timezone.utc)
         cursor.execute(
             """
-            INSERT INTO data_metadata (station_id, data_inserted_at, user_accessed, access_timestamp, action, timestamp)
-            VALUES (%s, %s, %s, %s, %s, %s)
+            INSERT INTO data_metadata (
+                station_id, data_inserted_at, user_accessed,
+                access_timestamp, action, timestamp, date_range
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
             """,
-            (station_id, now, user_id, now, action, now)
+            (station_id, now, user_id, now, action, now, date_range)
         )
         conn.commit()
         print(f"[INFO] Metadata log inserted: {action}")
@@ -241,7 +244,6 @@ def write_processed_to_gcs(**kwargs):
         columns = [desc[0] for desc in cursor.description]
         data = [dict(zip(columns, row)) for row in rows]
 
-        # 🔥 Fix: Convert 'date' object to string
         for record in data:
             if isinstance(record['date'], date):
                 record['date'] = record['date'].isoformat()
