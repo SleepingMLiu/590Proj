@@ -31,7 +31,8 @@ def cleanup_old_files():
         cursor = conn.cursor()
 
         for blob_name in blobs:
-            blob_metadata = gcs_hook.get_blob(bucket_name=PROCESSED_BUCKET_NAME, object_name=blob_name)
+            blob_metadata = gcs_hook.get_blob_metadata(bucket_name=PROCESSED_BUCKET_NAME, object_name=blob_name)
+
             if blob_metadata.updated < cutoff_time:
                 print(f"Deleting old file: {blob_name}")
 
