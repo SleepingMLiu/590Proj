@@ -14,7 +14,7 @@ DB_CONFIG = {
     'host': "35.202.11.58",
     'connect_timeout': 10
 }
-AGE_THRESHOLD_DAYS = 30  # Delete files older than 30 days
+AGE_THRESHOLD_DAYS = 1  # Delete files older than 30 days
 
 def cleanup_old_files():
     now = datetime.now(timezone.utc)
