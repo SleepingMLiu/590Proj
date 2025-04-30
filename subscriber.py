@@ -162,7 +162,7 @@ def user_request_callback(message):
 
     except Exception as e:
         print(f"[ERROR] Error handling user request: {e}")
-        message.nack()
+        message.ack()
 
 def confirmation_callback(message):
     """
