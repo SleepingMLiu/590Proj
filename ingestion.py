@@ -142,7 +142,7 @@ def fetch_from_api(**kwargs):
     data = fetch_from_ncei(station_id, start_date.strip(), end_date.strip())
     save_raw_to_gcs(data, conf)
     insert_data_into_postgres(data, conf)
-    insert_metadata_log(station_id, conf['user_id'], "insert")
+    insert_metadata_log(station_id, conf['user_id'], "insert", conf['date_range'])
 
 def save_raw_to_gcs(data, conf):
     gcs_hook = GCSHook(gcp_conn_id="google_cloud_default")
@@ -261,7 +261,7 @@ def write_processed_to_gcs(**kwargs):
             mime_type='application/json'
         )
 
-        insert_metadata_log(station_id, user_id, "download")
+        insert_metadata_log(station_id, user_id, "download", conf['date_range'])
 
         publish_to_pubsub({
             "user_id": user_id,
